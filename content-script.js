@@ -525,6 +525,12 @@
         z-index: 2147483646;
         pointer-events: none;
       }
+      .xrq-avatar-fixed-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483646;
+        pointer-events: none;
+      }
       .xrq-avatar-badge {
         position: absolute;
         z-index: 2147483647;
@@ -612,7 +618,7 @@
     if (!hud) {
       hud = document.createElement("div");
       hud.id = HUD_ID;
-      hud.addEventListener("click", (event) => event.stopPropagation(), true);
+      hud.addEventListener("click", handleHudClick, true);
       hud.addEventListener("mousedown", (event) => event.stopPropagation(), true);
       document.documentElement.appendChild(hud);
     }
@@ -628,15 +634,6 @@
           </div>
         </div>
       `;
-      hud.onclick = async (event) => {
-        event.stopPropagation();
-        const restore = event.target?.closest?.("[data-xrq-restore]");
-        if (!restore) return;
-        const nextState = await readState();
-        nextState.settings = { ...defaultState().settings, ...(nextState.settings || {}), hudMinimized: false };
-        await writeState(nextState);
-        await renderHud(true);
-      };
       return;
     }
 
@@ -678,16 +675,23 @@
         <button type="button" class="xrq-ghost" data-xrq-minimize>最小化</button>
       </div>
     `;
+  }
 
-    hud.onclick = async (event) => {
-      event.stopPropagation();
-      const minimize = event.target?.closest?.("[data-xrq-minimize]");
-      if (!minimize) return;
-      const nextState = await readState();
-      nextState.settings = { ...defaultState().settings, ...(nextState.settings || {}), hudMinimized: true };
-      await writeState(nextState);
-      await renderHud(true);
-    };
+  async function setHudMinimized(minimized) {
+    const nextState = await readState();
+    nextState.settings = { ...defaultState().settings, ...(nextState.settings || {}), hudMinimized: minimized };
+    await writeState(nextState);
+    await renderHud(true);
+  }
+
+  function handleHudClick(event) {
+    event.stopPropagation();
+    const minimize = event.target?.closest?.("[data-xrq-minimize]");
+    const restore = event.target?.closest?.("[data-xrq-restore]");
+    if (!minimize && !restore) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setHudMinimized(Boolean(minimize));
   }
 
   function detectActiveComposerReply() {
@@ -769,12 +773,19 @@
       layer.className = "xrq-avatar-layer";
       document.documentElement.appendChild(layer);
     }
+    let fixedLayer = document.querySelector(".xrq-avatar-fixed-layer");
+    if (!fixedLayer) {
+      fixedLayer = document.createElement("div");
+      fixedLayer.className = "xrq-avatar-fixed-layer";
+      document.documentElement.appendChild(fixedLayer);
+    }
 
     const avatarAnchors = [...document.querySelectorAll('a[href^="/"]')].filter((anchor) => {
       return anchor.querySelector('img[src*="profile_images"], img[draggable="true"]');
     });
 
     const badges = [];
+    const fixedBadges = [];
     for (const [index, anchor] of avatarAnchors.entries()) {
       const handle = extractHandleFromAnchor(anchor);
       if (!handle) continue;
@@ -783,9 +794,10 @@
       const rect = (image || anchor).getBoundingClientRect();
       if (rect.width < 18 || rect.height < 18 || rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) continue;
       const count = people[handle]?.count || 0;
-      const left = Math.round(window.scrollX + rect.left + rect.width / 2);
-      const top = Math.max(2, Math.round(window.scrollY + rect.top - 6));
-      badges.push(`
+      const isFixedAreaAvatar = Boolean(anchor.closest('aside, [data-testid="sidebarColumn"], [aria-label*="推荐"], [aria-label*="Who to follow"]'));
+      const left = Math.round((isFixedAreaAvatar ? 0 : window.scrollX) + rect.left + rect.width / 2);
+      const top = Math.max(2, Math.round((isFixedAreaAvatar ? 0 : window.scrollY) + rect.top - 6));
+      const badge = `
         <span
           class="xrq-avatar-badge ${count ? "" : "is-zero"}"
           data-handle="${escapeHtml(handle)}"
@@ -793,9 +805,12 @@
           title="${count ? `今天已回复 @${handle} ${count} 次` : `今天还没回复 @${handle}`}"
           style="left:${left}px; top:${top}px; transform:translateX(-50%);"
         >${count}</span>
-      `);
+      `;
+      if (isFixedAreaAvatar) fixedBadges.push(badge);
+      else badges.push(badge);
     }
     layer.innerHTML = badges.join("");
+    fixedLayer.innerHTML = fixedBadges.join("");
   }
 
   function startScanning() {
