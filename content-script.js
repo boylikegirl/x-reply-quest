@@ -8,7 +8,6 @@
   let cachedState = null;
   let lastHudRender = 0;
   let scanTimer = null;
-  let hudHidden = false;
   let isPageScrolling = false;
   let scrollStopTimer = null;
 
@@ -22,6 +21,9 @@
       totalXp: 0,
       days: {},
       achievements: {},
+      settings: {
+        hudMinimized: false
+      },
       lastRecorded: null
     };
   }
@@ -47,6 +49,7 @@
     cachedState = { ...defaultState(), ...(result[STORAGE_KEY] || {}) };
     cachedState.days ||= {};
     cachedState.achievements ||= {};
+    cachedState.settings = { ...defaultState().settings, ...(cachedState.settings || {}) };
     return cachedState;
   }
 
@@ -399,6 +402,11 @@
         font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         overflow: auto;
       }
+      #${HUD_ID}.is-minimized {
+        width: auto;
+        min-width: 154px;
+        overflow: visible;
+      }
       #${HUD_ID} * { box-sizing: border-box; }
       #${HUD_ID} button {
         border: 0;
@@ -411,6 +419,17 @@
         padding: 0 10px;
       }
       .xrq-top { display: flex; align-items: center; gap: 10px; padding: 12px; }
+      .xrq-mini {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 42px;
+        padding: 0 12px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .xrq-mini strong { font-size: 13px; }
+      .xrq-mini span { color: #a5b4fc; font-size: 12px; font-weight: 800; }
       .xrq-gem {
         display: grid;
         place-items: center;
@@ -432,7 +451,7 @@
       .xrq-progress { height: 8px; background: #1e293b; margin: 0 12px 12px; border-radius: 999px; overflow: hidden; }
       .xrq-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #38bdf8); }
       .xrq-actions { display: flex; gap: 8px; padding: 0 12px 12px; }
-      .xrq-actions button { flex: 1; }
+      .xrq-actions button { width: 100%; }
       .xrq-ghost { background: #334155 !important; color: #e2e8f0 !important; }
       .xrq-detail { display: grid; gap: 10px; padding: 0 12px 12px; }
       .xrq-section {
@@ -548,7 +567,6 @@
   }
 
   async function renderHud(force = false) {
-    if (hudHidden) return;
     const now = Date.now();
     if (!force && now - lastHudRender < 1000) return;
     lastHudRender = now;
@@ -599,6 +617,31 @@
       document.documentElement.appendChild(hud);
     }
 
+    if (state.settings?.hudMinimized) {
+      hud.classList.add("is-minimized");
+      hud.innerHTML = `
+        <div class="xrq-mini" data-xrq-restore title="展开 X Reply Quest">
+          <div class="xrq-gem">XP</div>
+          <div>
+            <strong>Lv.${level.level}</strong>
+            <span>${selectedDay.replies.length} 回复</span>
+          </div>
+        </div>
+      `;
+      hud.onclick = async (event) => {
+        event.stopPropagation();
+        const restore = event.target?.closest?.("[data-xrq-restore]");
+        if (!restore) return;
+        const nextState = await readState();
+        nextState.settings = { ...defaultState().settings, ...(nextState.settings || {}), hudMinimized: false };
+        await writeState(nextState);
+        await renderHud(true);
+      };
+      return;
+    }
+
+    hud.classList.remove("is-minimized");
+
     hud.innerHTML = `
       <div class="xrq-top">
         <div class="xrq-gem">XP</div>
@@ -632,19 +675,19 @@
         </div>
       </div>
       <div class="xrq-actions">
-        <button type="button" data-xrq-manual>补记当前</button>
-        <button type="button" class="xrq-ghost" data-xrq-hide>隐藏</button>
+        <button type="button" class="xrq-ghost" data-xrq-minimize>最小化</button>
       </div>
     `;
 
-    hud.querySelector("[data-xrq-manual]")?.addEventListener("click", async () => {
-      const payload = detectActiveComposerReply() || findVisibleTweetTarget();
-      await recordReply(payload, "manual");
-    });
-    hud.querySelector("[data-xrq-hide]")?.addEventListener("click", () => {
-      hudHidden = true;
-      hud.remove();
-    });
+    hud.onclick = async (event) => {
+      event.stopPropagation();
+      const minimize = event.target?.closest?.("[data-xrq-minimize]");
+      if (!minimize) return;
+      const nextState = await readState();
+      nextState.settings = { ...defaultState().settings, ...(nextState.settings || {}), hudMinimized: true };
+      await writeState(nextState);
+      await renderHud(true);
+    };
   }
 
   function detectActiveComposerReply() {
