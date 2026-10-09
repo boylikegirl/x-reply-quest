@@ -204,6 +204,24 @@
     }
   }
 
+  function detectOwnHandles() {
+    const selectors = [
+      '[data-testid="SideNav_AccountSwitcher_Button"] a[href^="/"]',
+      '[data-testid="AppTabBar_Profile_Link"]',
+      'a[aria-label*="Profile"][href^="/"]',
+      'a[aria-label*="个人资料"][href^="/"]',
+      'nav a[href^="/"]'
+    ];
+    const handles = new Set();
+    for (const selector of selectors) {
+      for (const anchor of document.querySelectorAll(selector)) {
+        const handle = extractHandleFromAnchor(anchor);
+        if (handle) handles.add(handle);
+      }
+    }
+    return handles;
+  }
+
   function inferTargetFromText(text) {
     const patterns = [
       /Replying to\s+@([A-Za-z0-9_]{1,15})/i,
@@ -511,15 +529,6 @@
         background: #334155;
         border-color: #0f172a;
       }
-      .xrq-avatar-inline-wrap {
-        position: relative !important;
-        overflow: visible !important;
-      }
-      .xrq-avatar-inline-wrap > .xrq-avatar-badge {
-        left: 50%;
-        top: -9px;
-        transform: translateX(-50%);
-      }
       .xrq-toast {
         position: fixed;
         right: 18px;
@@ -710,8 +719,7 @@
     if (isPageScrolling) return;
     const state = cachedState || (await readState());
     const people = ensureDay(state).people || {};
-    document.querySelectorAll(".xrq-avatar-inline-wrap > .xrq-avatar-badge").forEach((badge) => badge.remove());
-    document.querySelectorAll(".xrq-avatar-inline-wrap").forEach((anchor) => anchor.classList.remove("xrq-avatar-inline-wrap"));
+    const ownHandles = detectOwnHandles();
     let layer = document.querySelector(".xrq-avatar-layer");
     if (!layer) {
       layer = document.createElement("div");
@@ -727,23 +735,13 @@
     for (const [index, anchor] of avatarAnchors.entries()) {
       const handle = extractHandleFromAnchor(anchor);
       if (!handle) continue;
+      if (ownHandles.has(handle)) continue;
       const image = anchor.querySelector('img[src*="profile_images"], img[draggable="true"]');
       const rect = (image || anchor).getBoundingClientRect();
       if (rect.width < 18 || rect.height < 18 || rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) continue;
       const count = people[handle]?.count || 0;
-      const isSidebarAvatar = Boolean(anchor.closest('aside, [data-testid="sidebarColumn"], [aria-label*="推荐"], [aria-label*="Who to follow"]'));
-      if (isSidebarAvatar) {
-        anchor.classList.add("xrq-avatar-inline-wrap");
-        const badge = document.createElement("span");
-        badge.className = `xrq-avatar-badge ${count ? "" : "is-zero"}`;
-        badge.dataset.handle = handle;
-        badge.title = count ? `今天已回复 @${handle} ${count} 次` : `今天还没回复 @${handle}`;
-        badge.textContent = String(count);
-        anchor.appendChild(badge);
-        continue;
-      }
       const left = Math.round(window.scrollX + rect.left + rect.width / 2);
-      const top = Math.max(2, Math.round(window.scrollY + rect.top - 9));
+      const top = Math.max(2, Math.round(window.scrollY + rect.top - 6));
       badges.push(`
         <span
           class="xrq-avatar-badge ${count ? "" : "is-zero"}"
