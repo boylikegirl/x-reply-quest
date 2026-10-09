@@ -525,12 +525,6 @@
         z-index: 2147483646;
         pointer-events: none;
       }
-      .xrq-avatar-fixed-layer {
-        position: fixed;
-        inset: 0;
-        z-index: 2147483646;
-        pointer-events: none;
-      }
       .xrq-avatar-badge {
         position: absolute;
         z-index: 2147483647;
@@ -553,6 +547,17 @@
         color: #cbd5e1;
         background: #334155;
         border-color: #0f172a;
+      }
+      .xrq-avatar-inline-wrap {
+        position: relative !important;
+        overflow: visible !important;
+        z-index: 3 !important;
+      }
+      .xrq-avatar-inline-wrap > .xrq-avatar-badge {
+        left: auto;
+        right: -5px;
+        top: -4px;
+        transform: none;
       }
       .xrq-toast {
         position: fixed;
@@ -767,17 +772,14 @@
     const state = cachedState || (await readState());
     const people = ensureDay(state).people || {};
     const ownHandles = detectOwnHandles();
+    document.querySelectorAll(".xrq-avatar-inline-wrap > .xrq-avatar-badge").forEach((badge) => badge.remove());
+    document.querySelectorAll(".xrq-avatar-inline-wrap").forEach((anchor) => anchor.classList.remove("xrq-avatar-inline-wrap"));
+    document.querySelector(".xrq-avatar-fixed-layer")?.remove();
     let layer = document.querySelector(".xrq-avatar-layer");
     if (!layer) {
       layer = document.createElement("div");
       layer.className = "xrq-avatar-layer";
       document.documentElement.appendChild(layer);
-    }
-    let fixedLayer = document.querySelector(".xrq-avatar-fixed-layer");
-    if (!fixedLayer) {
-      fixedLayer = document.createElement("div");
-      fixedLayer.className = "xrq-avatar-fixed-layer";
-      document.documentElement.appendChild(fixedLayer);
     }
 
     const avatarAnchors = [...document.querySelectorAll('a[href^="/"]')].filter((anchor) => {
@@ -785,7 +787,6 @@
     });
 
     const badges = [];
-    const fixedBadges = [];
     for (const [index, anchor] of avatarAnchors.entries()) {
       const handle = extractHandleFromAnchor(anchor);
       if (!handle) continue;
@@ -795,8 +796,19 @@
       if (rect.width < 18 || rect.height < 18 || rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) continue;
       const count = people[handle]?.count || 0;
       const isFixedAreaAvatar = Boolean(anchor.closest('aside, [data-testid="sidebarColumn"], [aria-label*="推荐"], [aria-label*="Who to follow"]'));
-      const left = Math.round((isFixedAreaAvatar ? 0 : window.scrollX) + rect.left + rect.width / 2);
-      const top = Math.max(2, Math.round((isFixedAreaAvatar ? 0 : window.scrollY) + rect.top - 6));
+      if (isFixedAreaAvatar) {
+        anchor.classList.add("xrq-avatar-inline-wrap");
+        const badge = document.createElement("span");
+        badge.className = `xrq-avatar-badge ${count ? "" : "is-zero"}`;
+        badge.dataset.handle = handle;
+        badge.dataset.index = String(index);
+        badge.title = count ? `今天已回复 @${handle} ${count} 次` : `今天还没回复 @${handle}`;
+        badge.textContent = String(count);
+        anchor.appendChild(badge);
+        continue;
+      }
+      const left = Math.round(window.scrollX + rect.left + rect.width / 2);
+      const top = Math.max(2, Math.round(window.scrollY + rect.top - 6));
       const badge = `
         <span
           class="xrq-avatar-badge ${count ? "" : "is-zero"}"
@@ -806,11 +818,9 @@
           style="left:${left}px; top:${top}px; transform:translateX(-50%);"
         >${count}</span>
       `;
-      if (isFixedAreaAvatar) fixedBadges.push(badge);
-      else badges.push(badge);
+      badges.push(badge);
     }
     layer.innerHTML = badges.join("");
-    fixedLayer.innerHTML = fixedBadges.join("");
   }
 
   function startScanning() {
