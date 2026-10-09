@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "X Reply Quest",
+  "version": "0.1.0",
+  "description": "Record daily X replies, count people replied to today, and turn outreach into XP progress.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://x.com/*", "https://twitter.com/*"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {
+    "default_title": "X Reply Quest",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

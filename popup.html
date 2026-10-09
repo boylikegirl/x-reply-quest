@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X Reply Quest</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <div>
+          <div class="eyebrow">UTC 每日任务</div>
+          <h1>X Reply Quest</h1>
+          <p id="dayLabel">读取中...</p>
+        </div>
+        <div class="level">
+          <span id="levelValue">1</span>
+          <small>LV</small>
+        </div>
+      </section>
+
+      <section class="progress">
+        <div class="row">
+          <strong id="xpText">0 / 100 XP</strong>
+          <span id="totalXp">总计 0 XP</span>
+        </div>
+        <div class="bar"><span id="xpBar"></span></div>
+      </section>
+
+      <section class="history-query">
+        <label for="datePicker">查询日期</label>
+        <input id="datePicker" type="date">
+        <button id="todayBtn" type="button">今天</button>
+      </section>
+
+      <section class="stats">
+        <article>
+          <b id="replyCount">0</b>
+          <span id="replyLabel">今日回复</span>
+        </article>
+        <article>
+          <b id="peopleCount">0</b>
+          <span>当日人数</span>
+        </article>
+        <article>
+          <b id="streakCount">0</b>
+          <span>连续天数</span>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 id="peopleTitle">今日名单</h2>
+          <span id="resetHint">UTC 00:00 切换</span>
+        </div>
+        <div id="peopleList" class="people-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>成就</h2>
+          <span id="achievementCount">0</span>
+        </div>
+        <div id="achievementList" class="achievement-list"></div>
+      </section>
+
+      <div class="actions">
+        <button id="exportBtn" type="button">导出记录</button>
+        <button id="clearTodayBtn" type="button" class="danger">清空今日</button>
+      </div>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
