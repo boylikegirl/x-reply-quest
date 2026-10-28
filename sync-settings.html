@@ -9,10 +9,11 @@
 <body>
   <main class="app sync-panel">
     <h1>同步到插件文件夹</h1>
-    <p>请选择浏览器实际加载的 x-reply-quest-extension 文件夹。全部历史将保存为其中的 history.json，并随记录变化自动覆盖更新。</p>
-    <p>选择文件夹后，请允许写入；如果浏览器提供“每次访问都允许”，可选择该选项。重新启动后如权限失效，请重新授权。</p>
+    <p>点击“选择记录文件”，在保存窗口进入插件文件夹，文件名保留 history.json，然后保存。只授权这个 JSON 文件，无需授权整个文件夹。</p>
+    <p>在浏览器扩展管理页查看插件加载路径，在保存窗口进入该目录，文件名使用 history.json。</p>
+    <p>如果浏览器仍提示该位置受保护，请改用普通数据文件夹。插件无法强制写入被浏览器禁止的位置。重新启动后如权限失效，请重新授权。</p>
     <div class="actions">
-      <button id="chooseDirectory" type="button">选择插件文件夹</button>
+      <button id="chooseDirectory" type="button">选择记录文件</button>
       <button id="authorizeDirectory" type="button" disabled>重新授权</button>
     </div>
     <label><input id="autoSync" type="checkbox" disabled> 自动同步</label>

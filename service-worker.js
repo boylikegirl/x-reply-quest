@@ -37,16 +37,16 @@ async function syncFile() {
   const settings = stored[SYNC_KEY];
   if (!settings?.enabled) return;
   try {
-    if (settings.mode !== "directory") throw new Error("请打开文件夹设置，选择插件文件夹并授权");
+    if (!["directory", "file"].includes(settings.mode)) throw new Error("请打开同步设置，选择记录文件并授权");
     const directory = await FileSyncDirectory.get();
-    if (!directory) throw new Error("请先选择插件文件夹");
+    if (!directory) throw new Error("请先选择记录文件");
     if (await directory.queryPermission({ mode: "readwrite" }) !== "granted") {
-      throw new Error("文件夹写入权限已失效，请打开文件夹设置，点击重新授权");
+      throw new Error("写入权限已失效，请打开同步设置，点击重新授权");
     }
     const state = stored[STORAGE_KEY] || { version: 1, totalXp: 0, days: {}, achievements: {} };
     const content = JSON.stringify(state, null, 2);
     await chrome.storage.local.set({ [STATUS_KEY]: { state: "writing" } });
-    const file = await directory.getFileHandle("history.json", { create: true });
+    const file = directory.kind === "file" ? directory : await directory.getFileHandle("history.json", { create: true });
     const writable = await file.createWritable();
     try {
       await writable.write(content);
@@ -56,7 +56,7 @@ async function syncFile() {
       throw error;
     }
     await chrome.storage.local.set({ [STATUS_KEY]: {
-      state: "complete", at: new Date().toISOString(), path: `${directory.name}/history.json`
+      state: "complete", at: new Date().toISOString(), path: directory.kind === "file" ? directory.name : `${directory.name}/history.json`
     } });
   } catch (error) {
     await chrome.storage.local.set({ [STATUS_KEY]: { state: "error", error: error.message || String(error) } });

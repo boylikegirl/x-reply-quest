@@ -1,4 +1,4 @@
-// IndexedDB can persist directory handles; chrome.storage cannot.
+// IndexedDB persists file and legacy directory handles; chrome.storage cannot.
 globalThis.FileSyncDirectory = {
   async access(mode, handle) {
     const db = await new Promise((resolve, reject) => {

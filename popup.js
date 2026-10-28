@@ -182,14 +182,14 @@ async function renderSync() {
   const stored = await chrome.storage.local.get([SYNC_KEY, STATUS_KEY]);
   const settings = stored[SYNC_KEY] || {};
   const status = stored[STATUS_KEY] || {};
-  const enabled = settings.enabled && settings.mode === "directory";
+  const enabled = settings.enabled && ["directory", "file"].includes(settings.mode);
   document.getElementById("syncNowBtn").disabled = !enabled || status.state === "writing";
-  document.getElementById("syncStatus").textContent = settings.enabled && settings.mode !== "directory" ? "请重新选择插件文件夹，升级为直接写入" :
-    !enabled ? "自动同步未开启，请选择插件文件夹" :
+  document.getElementById("syncStatus").textContent = settings.enabled && !enabled ? "请重新选择记录文件，升级为直接写入" :
+    !enabled ? "自动同步未开启，请选择记录文件" :
     status.state === "error" ? `同步失败：${status.error}` :
     status.state === "writing" ? "正在写入文件…" :
     status.at ? `上次同步：${new Date(status.at).toLocaleString("zh-CN")}` : "等待同步";
-  document.getElementById("syncLocation").textContent = enabled ? `保存位置：所选 ${settings.directoryName} 文件夹 / history.json` : "";
+  document.getElementById("syncLocation").textContent = enabled ? (settings.mode === "file" ? `记录文件：${settings.fileName}（位于你选择的保存位置）` : `保存位置：所选 ${settings.directoryName} 文件夹 / history.json`) : "";
 }
 document.getElementById("openSyncSettings").addEventListener("click", () => chrome.runtime.openOptionsPage());
 document.getElementById("syncNowBtn").addEventListener("click", async () => {
