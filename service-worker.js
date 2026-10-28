@@ -77,6 +77,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 chrome.runtime.onStartup.addListener(() => enqueueSync().catch(() => {}));
 chrome.runtime.onInstalled.addListener(() => enqueueSync().catch(() => {}));
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "xrq:open-sync-settings") {
+    chrome.runtime.openOptionsPage().then(() => sendResponse({ ok: true }), error => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
   if (message?.type !== "xrq:sync-file") return;
   enqueueSync().then(() => sendResponse({ ok: true }), error => sendResponse({ ok: false, error: error.message }));
   return true;

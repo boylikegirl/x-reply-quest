@@ -677,6 +677,7 @@
         </div>
       </div>
       <div class="xrq-actions">
+        <button type="button" data-xrq-file-sync>本地文件同步</button>
         <button type="button" class="xrq-ghost" data-xrq-minimize>最小化</button>
       </div>
     `;
@@ -693,9 +694,14 @@
     event.stopPropagation();
     const minimize = event.target?.closest?.("[data-xrq-minimize]");
     const restore = event.target?.closest?.("[data-xrq-restore]");
-    if (!minimize && !restore) return;
+    const fileSync = event.target?.closest?.("[data-xrq-file-sync]");
+    if (!minimize && !restore && !fileSync) return;
     event.preventDefault();
     event.stopImmediatePropagation();
+    if (fileSync) {
+      safeSendMessage({ type: "xrq:open-sync-settings" });
+      return;
+    }
     setHudMinimized(Boolean(minimize));
   }
 
