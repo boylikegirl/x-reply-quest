@@ -10,6 +10,10 @@
   --red: #ef4444;
 }
 
+.sync-panel label { display: block; margin-top: 10px; }
+.sync-panel input[type="text"] { width: 100%; margin-top: 6px; padding: 8px; background: #0b1220; color: var(--text); border: 1px solid var(--line); border-radius: 6px; }
+.sync-panel p { margin-top: 8px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+
 * {
   box-sizing: border-box;
 }

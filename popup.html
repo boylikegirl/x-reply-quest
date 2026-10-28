@@ -65,6 +65,17 @@
         <div id="achievementList" class="achievement-list"></div>
       </section>
 
+      <section class="panel sync-panel">
+        <h2>同步到本地文件</h2>
+        <p>选择插件文件夹后，自动更新其中的 history.json，供其他程序读取。</p>
+        <div class="actions">
+          <button id="openSyncSettings" type="button">选择文件夹 / 设置</button>
+          <button id="syncNowBtn" type="button">立即同步</button>
+        </div>
+        <p id="syncStatus" role="status" aria-live="polite"></p>
+        <p id="syncLocation"></p>
+      </section>
+
       <div class="actions">
         <button id="exportBtn" type="button">导出记录</button>
         <button id="clearTodayBtn" type="button" class="danger">清空今日</button>

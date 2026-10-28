@@ -175,3 +175,32 @@ document.getElementById("todayBtn").addEventListener("click", () => {
 });
 chrome.storage.onChanged.addListener(render);
 render();
+
+const SYNC_KEY = "xReplyQuestFileSync";
+const STATUS_KEY = "xReplyQuestFileSyncStatus";
+async function renderSync() {
+  const stored = await chrome.storage.local.get([SYNC_KEY, STATUS_KEY]);
+  const settings = stored[SYNC_KEY] || {};
+  const status = stored[STATUS_KEY] || {};
+  const enabled = settings.enabled && settings.mode === "directory";
+  document.getElementById("syncNowBtn").disabled = !enabled || status.state === "writing";
+  document.getElementById("syncStatus").textContent = settings.enabled && settings.mode !== "directory" ? "请重新选择插件文件夹，升级为直接写入" :
+    !enabled ? "自动同步未开启，请选择插件文件夹" :
+    status.state === "error" ? `同步失败：${status.error}` :
+    status.state === "writing" ? "正在写入文件…" :
+    status.at ? `上次同步：${new Date(status.at).toLocaleString("zh-CN")}` : "等待同步";
+  document.getElementById("syncLocation").textContent = enabled ? `保存位置：所选 ${settings.directoryName} 文件夹 / history.json` : "";
+}
+document.getElementById("openSyncSettings").addEventListener("click", () => chrome.runtime.openOptionsPage());
+document.getElementById("syncNowBtn").addEventListener("click", async () => {
+  document.getElementById("syncNowBtn").disabled = true;
+  try {
+    const result = await chrome.runtime.sendMessage({ type: "xrq:sync-file" });
+    if (!result?.ok) throw new Error(result?.error || "同步失败");
+    await renderSync();
+  } catch (error) { document.getElementById("syncStatus").textContent = error.message; document.getElementById("syncNowBtn").disabled = false; }
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && (changes[SYNC_KEY] || changes[STATUS_KEY])) renderSync();
+});
+renderSync();

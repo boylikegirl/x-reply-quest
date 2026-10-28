@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>本地文件同步 · X Reply Quest</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="app sync-panel">
+    <h1>同步到插件文件夹</h1>
+    <p>请选择浏览器实际加载的 x-reply-quest-extension 文件夹。全部历史将保存为其中的 history.json，并随记录变化自动覆盖更新。</p>
+    <p>选择文件夹后，请允许写入；如果浏览器提供“每次访问都允许”，可选择该选项。重新启动后如权限失效，请重新授权。</p>
+    <div class="actions">
+      <button id="chooseDirectory" type="button">选择插件文件夹</button>
+      <button id="authorizeDirectory" type="button" disabled>重新授权</button>
+    </div>
+    <label><input id="autoSync" type="checkbox" disabled> 自动同步</label>
+    <div class="actions"><button id="syncNow" type="button" disabled>立即同步</button></div>
+    <p id="directoryLabel"></p>
+    <p id="settingsStatus" role="status" aria-live="polite">读取中…</p>
+    <p>关闭同步会保留已有文件。文件只包含插件当前记录，清空今日也会更新到文件；修改文件不会反向修改插件数据。</p>
+  </main>
+  <script src="file-sync-storage.js"></script>
+  <script src="sync-settings.js"></script>
+</body>
+</html>

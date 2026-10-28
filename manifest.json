@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "X Reply Quest",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Record daily X replies, count people replied to today, and turn outreach into XP progress.",
   "permissions": ["storage"],
+  "options_page": "sync-settings.html",
   "host_permissions": ["https://x.com/*", "https://twitter.com/*"],
   "background": {
     "service_worker": "service-worker.js"
