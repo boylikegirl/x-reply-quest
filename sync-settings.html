@@ -13,13 +13,24 @@
     <p>在浏览器扩展管理页查看插件加载路径，在保存窗口进入该目录，文件名使用 history.json。</p>
     <p>如果浏览器仍提示该位置受保护，请改用普通数据文件夹。插件无法强制写入被浏览器禁止的位置。重新启动后如权限失效，请重新授权。</p>
     <div class="actions">
-      <button id="chooseDirectory" type="button">选择记录文件</button>
+      <button id="chooseDirectory" type="button">选择历史文件</button>
       <button id="authorizeDirectory" type="button" disabled>重新授权</button>
     </div>
-    <label><input id="autoSync" type="checkbox" disabled> 自动同步</label>
+    <label><input id="autoSync" type="checkbox" disabled> 自动同步（总开关）</label>
     <div class="actions"><button id="syncNow" type="button" disabled>立即同步</button></div>
     <p id="directoryLabel"></p>
     <p id="settingsStatus" role="status" aria-live="polite">读取中…</p>
+    <section class="panel">
+      <h2>当天回复单独保存</h2>
+      <p>选择同一目录中的 today.json。文件只包含当天回复和完整名单；按 UTC 00:00（北京时间 08:00）换日，文件内 date 标明所属日期。</p>
+      <div class="actions">
+        <button id="chooseToday" type="button" disabled>选择当天文件</button>
+        <button id="authorizeToday" type="button" disabled>重新授权</button>
+      </div>
+      <label><input id="todaySync" type="checkbox" disabled> 同时更新当天文件</label>
+      <p id="todayLabel"></p>
+      <p id="todayStatus" role="status" aria-live="polite"></p>
+    </section>
     <p>关闭同步会保留已有文件。文件只包含插件当前记录，清空今日也会更新到文件；修改文件不会反向修改插件数据。</p>
   </main>
   <script src="file-sync-storage.js"></script>

@@ -1,4 +1,6 @@
 # Exported reply history is private; do not commit it.
 history.json
 history.json.*
+today.json
+today.json.*
 backups/

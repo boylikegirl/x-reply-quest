@@ -32,36 +32,66 @@ const SYNC_KEY = "xReplyQuestFileSync";
 const STATUS_KEY = "xReplyQuestFileSyncStatus";
 let syncQueue = Promise.resolve();
 
-async function syncFile() {
-  const stored = await chrome.storage.local.get([SYNC_KEY, STORAGE_KEY]);
-  const settings = stored[SYNC_KEY];
-  if (!settings?.enabled) return;
+const TODAY_STATUS_KEY = "xReplyQuestTodayFileSyncStatus";
+
+function todaySnapshot(state, date = new Date()) {
+  const dayKey = utcDayKey(date);
+  const day = state.days?.[dayKey] || { replies: [], people: {} };
+  return {
+    version: 1, date: dayKey, timeZone: "UTC", updatedAt: date.toISOString(),
+    replyCount: (day.replies || []).length, peopleCount: Object.keys(day.people || {}).length,
+    replies: day.replies || [], people: day.people || {}
+  };
+}
+
+async function writeSnapshot(handle, filename, snapshot, statusKey) {
   try {
-    if (!["directory", "file"].includes(settings.mode)) throw new Error("请打开同步设置，选择记录文件并授权");
-    const directory = await FileSyncDirectory.get();
-    if (!directory) throw new Error("请先选择记录文件");
-    if (await directory.queryPermission({ mode: "readwrite" }) !== "granted") {
-      throw new Error("写入权限已失效，请打开同步设置，点击重新授权");
+    if (!handle) throw new Error(`请先在同步设置中选择 ${filename}`);
+    if (await handle.queryPermission({ mode: "readwrite" }) !== "granted") {
+      throw new Error(`${filename} 写入权限已失效，请打开同步设置，点击重新授权`);
     }
-    const state = stored[STORAGE_KEY] || { version: 1, totalXp: 0, days: {}, achievements: {} };
-    const content = JSON.stringify(state, null, 2);
-    await chrome.storage.local.set({ [STATUS_KEY]: { state: "writing" } });
-    const file = directory.kind === "file" ? directory : await directory.getFileHandle("history.json", { create: true });
+    await chrome.storage.local.set({ [statusKey]: { state: "writing" } });
+    const file = handle.kind === "file" ? handle : await handle.getFileHandle(filename, { create: true });
     const writable = await file.createWritable();
     try {
-      await writable.write(content);
+      await writable.write(JSON.stringify(snapshot, null, 2));
       await writable.close();
     } catch (error) {
       try { await writable.abort(); } catch (_) { /* Already closed or aborted. */ }
       throw error;
     }
-    await chrome.storage.local.set({ [STATUS_KEY]: {
-      state: "complete", at: new Date().toISOString(), path: directory.kind === "file" ? directory.name : `${directory.name}/history.json`
+    await chrome.storage.local.set({ [statusKey]: {
+      state: "complete", at: new Date().toISOString(), path: handle.kind === "file" ? handle.name : `${handle.name}/${filename}`
     } });
   } catch (error) {
-    await chrome.storage.local.set({ [STATUS_KEY]: { state: "error", error: error.message || String(error) } });
+    await chrome.storage.local.set({ [statusKey]: { state: "error", error: error.message || String(error) } });
     throw error;
   }
+}
+
+async function syncFile() {
+  const stored = await chrome.storage.local.get([SYNC_KEY, STORAGE_KEY]);
+  const settings = stored[SYNC_KEY];
+  if (!settings?.enabled) return;
+  if (!["directory", "file"].includes(settings.mode)) {
+    const error = new Error("请打开同步设置，选择记录文件并授权");
+    await chrome.storage.local.set({ [STATUS_KEY]: { state: "error", error: error.message } });
+    throw error;
+  }
+  const state = stored[STORAGE_KEY] || { version: 1, totalXp: 0, days: {}, achievements: {} };
+  const exports = [{ key: "directory", filename: "history.json", snapshot: state, statusKey: STATUS_KEY }];
+  if (settings.todayEnabled) exports.push({ key: "today", filename: "today.json", snapshot: todaySnapshot(state), statusKey: TODAY_STATUS_KEY });
+  const errors = [];
+  for (const item of exports) {
+    try {
+      const handle = await FileSyncDirectory.get(item.key);
+      await writeSnapshot(handle, item.filename, item.snapshot, item.statusKey);
+    } catch (error) {
+      await chrome.storage.local.set({ [item.statusKey]: { state: "error", error: error.message || String(error) } });
+      errors.push(error);
+    }
+  }
+  if (errors.length) throw errors[0];
 }
 
 function enqueueSync() {
@@ -84,4 +114,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== "xrq:sync-file") return;
   enqueueSync().then(() => sendResponse({ ok: true }), error => sendResponse({ ok: false, error: error.message }));
   return true;
+});
+
+// Refresh today.json at UTC midnight, even if no new replies are sent.
+async function scheduleDayRollover() {
+  const nextDay = new Date();
+  nextDay.setUTCHours(24, 0, 0, 0);
+  await chrome.alarms.create("xrq:day-rollover", { when: nextDay.getTime(), periodInMinutes: 1440 });
+}
+chrome.runtime.onInstalled.addListener(() => scheduleDayRollover().catch(console.error));
+chrome.runtime.onStartup.addListener(() => scheduleDayRollover().catch(console.error));
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === "xrq:day-rollover") {
+    enqueueSync().catch(() => {});
+    updateBadge().catch(console.error);
+  }
 });

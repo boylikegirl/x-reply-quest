@@ -178,10 +178,13 @@ render();
 
 const SYNC_KEY = "xReplyQuestFileSync";
 const STATUS_KEY = "xReplyQuestFileSyncStatus";
+const TODAY_STATUS_KEY = "xReplyQuestTodayFileSyncStatus";
 async function renderSync() {
-  const stored = await chrome.storage.local.get([SYNC_KEY, STATUS_KEY]);
+  const stored = await chrome.storage.local.get([SYNC_KEY, STATUS_KEY, TODAY_STATUS_KEY]);
   const settings = stored[SYNC_KEY] || {};
   const status = stored[STATUS_KEY] || {};
+  const todayStatus = stored[TODAY_STATUS_KEY] || {};
+  document.getElementById("todaySyncStatus").textContent = !settings.todayEnabled ? "当天文件：尚未开启，可在设置中选择 today.json" : !settings.enabled ? "当天文件：自动同步已暂停" : todayStatus.state === "error" ? `当天文件同步失败：${todayStatus.error}` : todayStatus.state === "writing" ? "当天文件：正在写入…" : todayStatus.at ? `当天文件：today.json · ${new Date(todayStatus.at).toLocaleString("zh-CN")}` : "当天文件：等待同步";
   const enabled = settings.enabled && ["directory", "file"].includes(settings.mode);
   document.getElementById("syncNowBtn").disabled = !enabled || status.state === "writing";
   document.getElementById("syncStatus").textContent = settings.enabled && !enabled ? "请重新选择记录文件，升级为直接写入" :
@@ -201,6 +204,6 @@ document.getElementById("syncNowBtn").addEventListener("click", async () => {
   } catch (error) { document.getElementById("syncStatus").textContent = error.message; document.getElementById("syncNowBtn").disabled = false; }
 });
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && (changes[SYNC_KEY] || changes[STATUS_KEY])) renderSync();
+  if (area === "local" && (changes[SYNC_KEY] || changes[STATUS_KEY] || changes[TODAY_STATUS_KEY])) renderSync();
 });
 renderSync();
