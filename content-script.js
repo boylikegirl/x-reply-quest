@@ -290,14 +290,11 @@
   }
 
   function isSubmitButton(button) {
-    if (!button || button.disabled) return false;
+    if (!button || button.disabled || button.getAttribute("aria-disabled") === "true") return false;
     const testId = button.getAttribute("data-testid") || "";
-    const label = `${button.innerText || ""} ${button.getAttribute("aria-label") || ""}`;
-    return (
-      /tweetButton|tweetButtonInline/i.test(testId) ||
-      /\b(Reply|Post|Send)\b/i.test(label) ||
-      /(回复|发布|发送)/.test(label)
-    );
+    // Timeline reply controls open a composer; only these controls submit it.
+    // Do not infer submission from labels like "回复" or "Reply".
+    return testId === "tweetButton" || testId === "tweetButtonInline";
   }
 
   function isDuplicate(day, targetHandle, textPreview) {
